@@ -1,6 +1,8 @@
 #!/bin/bash
 # Runs tracula on a single subject
 
+set -e 
+
 usage () {
   echo "
    Usage: 
@@ -32,8 +34,10 @@ function exit_if_exists {
 subjectsdir=$1; shift;
 output=$1; shift;
 mkdir -p $output
+output=$(readlink -f $output)
 
 for dwi in $@; do 
+  echo DTI: $dwi 
   dwidir=$(dirname $dwi)
   subjectid=$(basename $dwidir )   # DWI parent folder name
   stem=$(basename $dwi .nii.gz)
@@ -56,7 +60,7 @@ for dwi in $@; do
   set bvalfile = ( ${bval} )
 EOF
 
-  tracdir=$output/${stem}
+  tracdir=$output/${subjectid}
   isrunning=${tracdir}/scripts/IsRunning.trac
 
   rm -f $isrunning
@@ -64,33 +68,41 @@ EOF
   ####### 
   ### Stage 1 : preparation 
   ##
+  echo Stage 1 - Begins
   if [ ! -e ${tracdir}/scripts/trac-preproc.done ]; then 
+    echo ${tracdir}/scripts/trac-preproc.done not found. 
     echo trac-all -prep -c $rc
     trac-all -prep -c $rc
   fi 
   exit_if_exists $isrunning "Stage 1 finished but claims still running."
+  echo Stage 1 - Complete
 
   ####### 
   ### Stage 2: Bedpost
-  ##
+  ##.
+  echo Stage 2 - Begins
   if [ ! -e ${tracdir}/dmri.bedpostX/xfms/eye.mat ]; then 
     echo trac-all -bedp -c $rc
     trac-all -bedp -c $rc
 
     # busy waiting
-    while [ ! -e ${tracdir}/dmri.bedpostX/xfms/eye.mat ]; do
-      sleep 30;
-      echo "$(date) : Waiting for bedpost to complete... "
-    done
+    exit
+    #while [ ! -e ${tracdir}/dmri.bedpostX/xfms/eye.mat ]; do
+    #  sleep 30;
+    #  echo "$(date) : Waiting for bedpost to complete... "
+    #done
   fi 
   exit_if_exists $isrunning "Stage 2 finished but claims still running."
+  echo Stage 2 - Complete
 
   ####### 
   ### Stage 3: Paths
   ##
+  echo Stage 3 - Begins
   if [ ! -e ${tracdir}/scripts/trac-paths.done ]; then 
     echo trac-all -path -c $rc
     trac-all -path -c $rc
   fi 
   exit_if_exists $isrunning "Stage 3 finished but claims still running."
+  echo Stage 3 - Complete.
 done;

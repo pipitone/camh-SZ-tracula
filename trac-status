@@ -1,0 +1,43 @@
+#!/bin/bash
+# Runs tracula on a single subject
+
+set -e 
+
+usage () {
+  echo "
+   Usage: 
+  
+    tracula <output/>
+  
+   Arguments: 
+  
+      <output/>           Path for tracula output 
+"
+}
+
+if [ -z "$1" ]; then
+  usage; exit;
+fi;
+
+output=$1; shift;
+
+for tracdir in $output/*; do 
+  if [ ! -d $tracdir ]; then continue; fi 
+
+  subjectid=$(basename $tracdir )   # DWI parent folder name
+  stem=$(basename $dwi .nii.gz)
+
+  runn_=${tracdir}/scripts/IsRunning.trac
+  prep_=${tracdir}/scripts/trac-preproc.done
+  bedp_=${tracdir}/dmri.bedpostX/xfms/eye.mat
+  path_=${tracdir}/scripts/trac-paths.done
+
+  state="stopped"
+  compl=""
+  if [ -e $runn_ ]; then state="running"; fi
+  if [ -e $prep_ ]; then compl="$compl prep"; fi
+  if [ -e $bedp_ ]; then compl="$compl bedp"; fi
+  if [ -e $path_ ]; then compl="$compl path"; fi
+
+  echo $subjectid: state: $state complete: [$compl ]
+done;
